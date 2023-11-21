@@ -55,8 +55,12 @@ func (g *Google) Login() (string, error) {
 		return SAMLResponse, fmt.Errorf("unable to click on email field")
 	}
 
+	// 10 minutes to log into the launched browser
+	timeout := 600000.0
 	r, err := page.ExpectRequest(g.WaitURL(), func() error {
 		return err
+	}, playwright.PageExpectRequestOptions{
+		Timeout: &timeout,
 	})
 	if err != nil {
 		return SAMLResponse, fmt.Errorf("can not ExpectRequest %v", err)
