@@ -58,7 +58,6 @@ func (g *Google) Login() (string, error) {
 	r, err := page.ExpectRequest(g.WaitURL(), func() error {
 		return err
 	})
-
 	if err != nil {
 		return SAMLResponse, fmt.Errorf("can not ExpectRequest %v", err)
 	}
