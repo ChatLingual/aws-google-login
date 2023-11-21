@@ -8,11 +8,19 @@ import (
 
 	"encoding/json"
 
-	awslogin "github.com/cucxabong/aws-google-login"
+	awslogin "github.com/ChatLingual/aws-google-login"
+	"github.com/manifoldco/promptui"
 
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/urfave/cli/v2"
 )
+
+var AWS_CREDS_EXPORT_TEMPLATE string = `
+export AWS_ACCESS_KEY_ID={{ .AccessKeyId }}
+export AWS_SESSION_TOKEN={{ .SessionToken }}
+export AWS_SECRET_ACCESS_KEY={{ .SecretAccessKey }}
+
+`
 
 type Option struct {
 	spID             string
@@ -160,6 +168,36 @@ func listRolesHandler(amz *awslogin.Amazon) error {
 	fmt.Println(string(jsonData))
 
 	return nil
+}
+
+func interactiveAssumeRole(amz *awslogin.Amazon, export bool) error {
+	roles, err := amz.ParseRoles()
+	if err != nil {
+		return err
+	}
+	if len(roles) == 1 {
+		return assumeSingleRoleHandler(amz, roles[0].RoleArn, export)
+	}
+
+	templates := promptui.SelectTemplates{
+		Active:   `🔐 {{ .RoleArn | cyan | bold }}`,
+		Inactive: `   {{ .RoleArn | cyan }}`,
+		Selected: `{{ "✔" | green | bold }} {{ "Assuming to" | bold }}: {{ .RoleArn | cyan }}`,
+	}
+
+	list := promptui.Select{
+		Label:     "Select a role",
+		Items:     roles,
+		Templates: &templates,
+		Size:      len(roles),
+	}
+
+	_, selected, err := list.Run()
+	if err != nil {
+		panic(err)
+	}
+
+	return assumeSingleRoleHandler(amz, selected, export)
 }
 
 func main() {
